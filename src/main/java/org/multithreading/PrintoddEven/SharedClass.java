@@ -2,8 +2,8 @@ package org.multithreading.PrintoddEven;
 
 public class SharedClass {
 
-   private int counter =0;
-   private int MAX_VALUE = 10;
+   private int counter = 1;
+   private int MAX_VALUE;
 
    public SharedClass(int MAX_VALUE) {
       this.MAX_VALUE = MAX_VALUE;
