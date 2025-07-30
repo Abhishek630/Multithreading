@@ -1,0 +1,173 @@
+1. Interleaving Threads — Predict the Output
+Code:
+
+java
+class Printer {
+    public synchronized void print(String msg) {
+        System.out.print(msg + " ");
+    }
+}
+
+public class InterleavingThreads {
+    public static void main(String[] args) {
+        Printer printer = new Printer();
+        Thread t1 = new Thread(() -> printer.print("A"));
+        Thread t2 = new Thread(() -> printer.print("B"));
+        t1.start();
+        t2.start();
+    }
+}
+// Output can be: "A B " or "B A "
+Solution & Explanation:
+
+The print method is synchronized, so only one thread at a time prints its message.
+
+Because threads are started almost simultaneously, and only one acquires the lock on Printer at a time, the output order cannot be predicted—it could be "A B " or "B A ".
+
+This demonstrates nondeterministic thread scheduling and synchronization.
+
+2. Calling wait() Without Synchronized Block
+Code (Buggy):
+
+java
+Object lock = new Object();
+lock.wait(); // Exception: Not inside a synchronized block
+Correct Usage:
+
+java
+Object lock = new Object();
+synchronized (lock) {
+    lock.wait(); // Correct: Inside synchronized block
+}
+Solution & Explanation:
+
+In Java, calling wait() outside a synchronized block causes an IllegalMonitorStateException.
+
+The thread must own the monitor (lock) for the object before calling wait().
+
+Always use wait() inside a synchronized (lock) block.
+
+3. Spurious Wakeup - Never use 'if' with wait()
+Incorrect Code:
+
+java
+class BuggyWait {
+    private boolean condition = false;
+    private final Object lock = new Object();
+
+    public void awaitCondition() throws InterruptedException {
+        synchronized (lock) {
+            if (!condition) {
+                lock.wait(); // Bug: Should use 'while', not 'if'
+            }
+            // proceed
+        }
+    }
+}
+Correct Code (Recommended Pattern):
+
+java
+class FixedWait {
+    private boolean condition = false;
+    private final Object lock = new Object();
+
+    public void awaitCondition() throws InterruptedException {
+        synchronized (lock) {
+            while (!condition) {
+                lock.wait();
+            }
+            // proceed
+        }
+    }
+
+    public void setConditionTrue() {
+        synchronized (lock) {
+            condition = true;
+            lock.notifyAll();
+        }
+    }
+}
+Solution & Explanation:
+
+Using if (!condition) wait(); is buggy because of "spurious wakeups": a thread might wake up without being notified.
+
+The correct idiom is to use a while loop for the waiting condition, so if a thread wakes up but the condition is still false, it keeps waiting.
+
+This pattern is essential for correct and robust concurrent code using wait()/notify().
+
+4. Output Order with Synchronized Methods and Flags
+Code:
+
+java
+class OrderedPrinter {
+    private boolean ready = false;
+
+    public synchronized void printFirst() {
+        System.out.println("first");
+        ready = true;
+        notifyAll();
+    }
+
+    public synchronized void printSecond() throws InterruptedException {
+        while (!ready) {
+            wait();
+        }
+        System.out.println("second");
+    }
+}
+
+public class SequenceDemo {
+    public static void main(String[] args) {
+        OrderedPrinter printer = new OrderedPrinter();
+        Thread t1 = new Thread(() -> {
+            try { printer.printSecond(); } catch (InterruptedException e) {}
+        });
+        Thread t2 = new Thread(printer::printFirst);
+        t1.start();
+        t2.start();
+    }
+}
+// Output: "first" (always before) "second"
+Solution & Explanation:
+
+Regardless of thread scheduling, printSecond always prints after printFirst, because it waits on the ready flag and only continues after printFirst has set it and notified.
+
+This shows proper sequencing and guard conditions in concurrent programming.
+
+5. Maximum Parallel Execution of Synchronized Methods
+Code:
+
+java
+class SyncMethods {
+    public synchronized void method1() throws InterruptedException { Thread.sleep(100); }
+    public synchronized void method2() throws InterruptedException { Thread.sleep(100); }
+    public synchronized void method3() throws InterruptedException { Thread.sleep(100); }
+    public synchronized void method4() throws InterruptedException { Thread.sleep(100); }
+}
+
+public class ParallelDemo {
+    public static void main(String[] args) {
+        SyncMethods obj = new SyncMethods();
+        for (int i = 1; i <= 4; i++) {
+            int finalI = i;
+            new Thread(() -> {
+                try {
+                    switch (finalI) {
+                        case 1: obj.method1(); break;
+                        case 2: obj.method2(); break;
+                        case 3: obj.method3(); break;
+                        case 4: obj.method4(); break;
+                    }
+                } catch (InterruptedException ignored) {}
+            }).start();
+        }
+    }
+}
+// Only one thread can execute any synchronized method at a time.
+Solution & Explanation:
+
+Even though there are four separate methods and four threads, only one can run a synchronized method on the same object at a time.
+
+The monitor lock is per object—not per method—so all synchronized methods are mutually exclusive on that instance.
+
+These merged blocks each contain code, the key answer, and explanation—ideal for study, interview prep, or reference! If you want further clarification or combined as a single file, just let me know.
