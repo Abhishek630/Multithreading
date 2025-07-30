@@ -12,7 +12,7 @@ public class Main {
 //    oddThread.start();
 //    evenThread.start();
 
-    for(int i=0; i<totalThreads; i++) {
+    for(int i=1; i<totalThreads; i++) {
       Thread printThread = new Thread(new NNumberMThread(counter,totalThreads,i),"Thread - " + (i+1) );
       printThread.start();
     }

@@ -25,7 +25,7 @@ public class NNumberMThread implements Runnable {
                     sharedClass.notifyAll();
                 } else {
                     try {
-                        sharedClass.wait();
+                        sharedClass.wait(500);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
